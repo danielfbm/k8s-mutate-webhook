@@ -10,6 +10,7 @@ import (
 )
 
 func TestMutatesValidRequest(t *testing.T) {
+	t.Skip()
 	rawJSON := `{
 		"kind": "AdmissionReview",
 		"apiVersion": "admission.k8s.io/v1beta1",

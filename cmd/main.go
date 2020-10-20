@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	m "github.com/alex-leonhardt/k8s-mutate-webhook/pkg/mutate"
+	m "github.com/danielfbm/k8s-mutate-webhook/pkg/mutate"
 )
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -59,5 +59,5 @@ func main() {
 		MaxHeaderBytes: 1 << 20, // 1048576
 	}
 
-	log.Fatal(s.ListenAndServeTLS("./ssl/mutateme.pem", "./ssl/mutateme.key"))
+	log.Fatal(s.ListenAndServeTLS("./ssl/mutatepvc.pem", "./ssl/mutatepvc.key"))
 }

@@ -9,6 +9,7 @@ import (
 
 	v1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,7 +26,8 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 	}
 
 	var err error
-	var pod *corev1.Pod
+	// var pod *corev1.Pod
+	var pvc *corev1.PersistentVolumeClaim
 
 	responseBody := []byte{}
 	ar := admReview.Request
@@ -34,9 +36,11 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 	if ar != nil {
 
 		// get the Pod object and unmarshal it into its struct, if we cannot, we might as well stop here
-		if err := json.Unmarshal(ar.Object.Raw, &pod); err != nil {
-			return nil, fmt.Errorf("unable unmarshal pod json object %v", err)
+		if err := json.Unmarshal(ar.Object.Raw, &pvc); err != nil {
+			return nil, fmt.Errorf("unable unmarshal pvc json object %v", err)
 		}
+
+		log.Println("object request pvc", pvc)
 		// set response options
 		resp.Allowed = true
 		resp.UID = ar.UID
@@ -48,24 +52,44 @@ func Mutate(body []byte, verbose bool) ([]byte, error) {
 			"mutateme": "yup it did it",
 		}
 
-		// the actual mutation is done by a string in JSONPatch style, i.e. we don't _actually_ modify the object, but
-		// tell K8S how it should modifiy it
-		p := []map[string]string{}
-		for i := range pod.Spec.Containers {
+		storage, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
+		oneGbi := resource.MustParse("1Gi")
+		if ok && storage.Cmp(oneGbi) <= -1 {
+			// if it is lower then 1Gi
+			// the actual mutation is done by a string in JSONPatch style, i.e. we don't _actually_ modify the object, but
+			// tell K8S how it should modifiy it
+			p := []map[string]string{}
 			patch := map[string]string{
 				"op":    "replace",
-				"path":  fmt.Sprintf("/spec/containers/%d/image", i),
-				"value": "debian",
+				"path":  "/spec/resources/requests/storage",
+				"value": "1Gi",
 			}
 			p = append(p, patch)
+			resp.Patch, err = json.Marshal(p)
+
+			// Success, of course ;)
+			resp.Result = &metav1.Status{
+				Status: "Success",
+			}
+		} else {
+			resp.Allowed = true
 		}
+
+		// for i := range pod.Spec.Containers {
+		// 	patch := map[string]string{
+		// 		"op":    "replace",
+		// 		"path":  fmt.Sprintf("/spec/containers/%d/image", i),
+		// 		"value": "debian",
+		// 	}
+		// 	p = append(p, patch)
+		// }
 		// parse the []map into JSON
-		resp.Patch, err = json.Marshal(p)
+		// resp.Patch, err = json.Marshal(p)
 
 		// Success, of course ;)
-		resp.Result = &metav1.Status{
-			Status: "Success",
-		}
+		// resp.Result = &metav1.Status{
+		// 	Status: "Success",
+		// }
 
 		admReview.Response = &resp
 		// back into JSON so we can return the finished AdmissionReview w/ Response directly

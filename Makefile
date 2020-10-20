@@ -1,5 +1,5 @@
-NAME = mutateme
-IMAGE_PREFIX = alexleonhardt
+NAME = mutatepvc
+IMAGE_PREFIX = danielfbm
 IMAGE_NAME = $$(basename `pwd`)
 IMAGE_VERSION = $$(git log --abbrev-commit --format=%h -s | head -n 1)
 

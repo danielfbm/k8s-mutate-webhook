@@ -1,4 +1,4 @@
-APP = mutateme
+APP = mutatepvc
 NAMESPACE = default
 
 .PHONY:cert
